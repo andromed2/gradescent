@@ -122,7 +122,10 @@ class Optimizer:
                 break
             x0 = x1
             y0 = y1
-        return x1, y1
+        return self.as_dict(x1), y1
+
+    def as_dict(self, x):
+        return {par.name: xi for par, xi in zip(self.parameters, x)}
 
     def has_grid(self):
         for par in self.parameters:
