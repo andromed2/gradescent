@@ -1,16 +1,17 @@
-# This is a sample Python script.
+from gradescent import *
+from random import random
 
-# Press Umschalt+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+xp = [random() for _ in range(100)]
+yp = [5 * x + 42 for x in xp]
 
+def func1 (a, b):
+    yyp = [a * x + b for x in xp]
+    return sum((yy - y)**2 for yy,y in zip(yyp, yp))
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Strg+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+xpar = Parameter("a", 2)
+ypar = Parameter("b", 10)
+opt = Optimizer(func1, trace=True)
+opt.add_par(xpar)
+opt.add_par(ypar)
+x = opt.optimize()
+print ("optimum:", x)
