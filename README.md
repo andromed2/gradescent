@@ -5,7 +5,7 @@ This optimizer varies a list of input variables x1, x2, ... xn in order to find 
 
 The optimizer supports min/max limits of the input variables and inputs that can only be integers.
 
-The optimization process either starts at a given point of initial input values or does a grid search in the input space to increase the probability to find a global optimum instead of a local one. It supports an adjustable learning rate and/or a self-adapting mechanism for the learning rate as well as an adjustable momentum.
+The optimization process either starts at a given point of initial input values or does a grid search in the input space to increase the probability to find a global optimum instead of a local one. It supports an automatic learning rate adjustment via backtracking line search, autmatic zoom-in for fine tuning as well as an adjustable momentum.
 
 Using the optimizer involves four steps:
 
@@ -27,7 +27,7 @@ The meaning of these parameters:
 
 #### 2. Create an optimizer instance by using the constructor:
 
-    Optimizer (function, args='enum', learning_rate=0.1, zoom_limit=1e6, momentum=0, iterations=100, min_improvement=0, trace=False, debug=False)
+    Optimizer (function, args='enum', zoom_limit=1e6, cfactor=0.5, momentum=0, iterations=100, min_improvement=0, trace=False, debug=False)
 
 The meaning of these parameters:
 
@@ -37,7 +37,7 @@ The meaning of these parameters:
   - args='kwargs': function(x=x, y=y)
   - args='dict': function(params) with x=params['x'] and y=params['y']
   - args='list': function(params) with x=params[0] and y=params[1]
-- learning_rate: initial learning rate (step = - learning_rate * gradient)
+- cfactor: control parameter in the Armijo condition for the backtracking line search algorithm
 - zoom_limit: if applying the steps doesn't improve the result any more, learning as well as the dx for calculating the gradient will be divided by an ever increasing zoom factor. This parameter limits the zooming process.
 - momentum: if momentum > 0, the (momentum * last_step) is added to the current step
 - iterations: maximum number of iterations

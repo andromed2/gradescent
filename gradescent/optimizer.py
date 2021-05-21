@@ -58,13 +58,13 @@ class Parameter:
         return points
 
 class Optimizer:
-    def __init__(self, function, args='enum', learning_rate=0.1, zoom_limit=1e6, momentum=0, iterations=100, min_improvement=0, trace=False, debug=False):
+    def __init__(self, function, args='enum', zoom_limit=1e6, cfactor=0.5, momentum=0, iterations=100, min_improvement=0, trace=False, debug=False):
         self.function = function
         self.args = args
         self.parmap = {}
         self.parameters = []
-        self.learning_rate = learning_rate
         self.zoom_limit = zoom_limit
+        self.cfactor = cfactor
         self.momentum = momentum
         self.iterations = iterations
         self.min_improvement = min_improvement
@@ -109,15 +109,14 @@ class Optimizer:
             if self.debug:
                 print("dx " + str(dx))
                 print("dy " + str(dy))
-            x1 = self.apply_gradient (x0, y0, dx, dy)
-            y1 = self.invoke(x1)
+            x1, y1, alpha = self.apply_gradient (x0, y0, dx, dy)
             if self.debug or self.trace:
                 print("iteration", iter, "zoom", self.zoomin, "at", x1, ":", y1)
             if y1 >= y0:
                 if self.zoomin < self.zoom_limit:
                     self.zoomin *= 2
                     continue
-                return x0, y0
+                return self.as_dict(x0), y0
             if y0 - y1 <= self.min_improvement:
                 break
             x0 = x1
@@ -131,7 +130,7 @@ class Optimizer:
         for par in self.parameters:
             if par.grid is not None:
                 return True
-            return False
+        return False
 
     def optimize_grid(self):
         gridlist = [par.grid_points() for par in self.parameters]
@@ -166,21 +165,29 @@ class Optimizer:
 
 
     def apply_gradient(self, x0, y0, dx, dy):
-        x1 = []
-        for i, par, x0i, dxi, dyi in zip(range(self.npars), self.parameters, x0, dx, dy):
-            s = dyi/dxi
-            eta = self.learning_rate
-            if s != 0 and eta > y0 / (s*s):
-                eta = y0 / (s*s)
-            delta = - s * eta / self.zoomin
-            if self.momentum != 0 and self.zoomin == 1 and self.last_change is not None:
-                delta += self.momentum * self.last_change[i]
-            x = par.limit(x0i, delta)
-            x1.append (x)
-        if self.momentum != 0:
-            self.last_change = [x1i - x0i for x1i, x0i in zip(x1, x0)]
-        return x1
-
+        s2 = sum((dyi/dxi)**2 for dxi, dyi in zip(dx, dy))
+        alpha = 0.5 * y0 / s2
+        for _ in range(20):
+            x1 = []
+            for i, par, x0i, dxi, dyi in zip(range(self.npars), self.parameters, x0, dx, dy):
+                s = dyi/dxi
+                delta = - s * alpha
+                if self.momentum != 0 and self.zoomin == 1 and self.last_change is not None:
+                    delta += self.momentum * self.last_change[i]
+                x = par.limit(x0i, delta)
+                x1.append (x)
+            try:
+                y1 = self.invoke(x1)
+                if self.debug:
+                    print("with alpha = " + str(alpha) + ", x " + str(x1) + ", y1 is " + str(y1))
+                if y0 - y1 >= alpha * self.cfactor * s2:
+                    if self.momentum != 0:
+                        self.last_change = [x1i - x0i for x1i, x0i in zip(x1, x0)]
+                    return x1, y1, alpha
+            except Exception:
+                pass
+            alpha = alpha / 2
+        return x0, y0, 0
 
 
 
